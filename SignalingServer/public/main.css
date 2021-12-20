@@ -1,0 +1,7 @@
+.placeholder{
+    display: none;
+    position: absolute;
+    background: url("https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif") no-repeat;
+    background-size: cover;
+    border: black solid 1px;
+}

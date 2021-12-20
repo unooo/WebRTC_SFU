@@ -1,0 +1,68 @@
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Page Title</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <link href="main.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="clientWebRTC_SFU.js"></script>
+    <script>
+        let localVideo;
+        let videoGrid;
+        let connectionStateSpan;        
+        let MyRTCData;
+        window.onload = function () {
+            refreshMyConnection();
+        }
+        
+        function disconnectMyConnection() {
+            //기존 RTC연결을 전부 삭제 후 소켓연결 종료 , 비디오 제거   
+            if (!MyRTCData)
+                return;
+            for (let key in MyRTCData.pcs)
+                MyRTCData.pcs[key].close();
+            removeVideoAll();
+            MyRTCData.socket.emit('exit');
+            MyRTCData.socket.disconnect();
+            MyRTCData = null;
+        }
+        function refreshMyConnection() {
+            disconnectMyConnection();
+            localVideo = document.getElementById('localVideo');
+            videoGrid = document.getElementById('video-grid');
+            connectionStateSpan = document.getElementById('connectionStateSpan');
+            MyRTCData = App(localVideo,videoGrid ,connectionStateSpan);            
+        }
+        function removeVideoAll() {
+            MyRTCData.remoteVideos.forEach(delVideo => {
+                if (delVideo.id == MyRTCData.socket.id)
+                    return;
+                delVideo.parentNode.remove();
+
+            })
+        }
+
+    </script>
+
+</head>
+
+<body>
+    <div>My Video</div>
+    <div><span>접속 상태 :</span><span id='connectionStateSpan'></span></div>
+    <input type='button' id='disconnectMyConnecionBtn' value="내 연결 끊기" onclick="disconnectMyConnection()">
+    <input type='button' id='refreshMyConnecionBtn' value="내 연결 새로고침" onclick="refreshMyConnection()">
+    <div>
+        <video style="
+            width: 240;
+            height: 240;
+            margin: 5;
+            backgroundColor: 'black';            
+          " id="localVideo" muted playsinline autoplay>
+        </video>
+    </div>
+    <div>Other Video</div>
+</body>
+
+</html>
