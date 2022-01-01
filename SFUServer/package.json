@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "socket.io-client": "^4.4.0"
+    "socket.io-client": "^4.4.0",
+    "webrtc-adapter": "^8.1.0",
+    "wrtc": "^0.4.7"
   }
 }
