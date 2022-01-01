@@ -27,9 +27,19 @@ app.use(express.static('public'));
 
 let roomToUsers = {};
 let socketIdToRoom = {};
+let SFUsocketID=null;
+
 const maximum = process.env.MAXIMUM || 4;
 
 io.on('connection', socket => {
+    
+    if(SFUsocketID)
+        socket.emit("getSFUsocketID",SFUsocketID);
+
+    socket.on('SFUAccess',()=>{
+        SFUsocketID=socket.id;
+        console.log('[SFUAccess] SFUsocketID: '+SFUsocketID);
+    })
     socket.on('join_room', data => {
         if (roomToUsers[data.room]) {
             const length = roomToUsers[data.room].length;
@@ -47,35 +57,53 @@ io.on('connection', socket => {
         console.log(`[${socketIdToRoom[socket.id]}]: ${socket.id} enter`);
 
         const usersInThisRoom = roomToUsers[data.room].filter(user => user.id !== socket.id);
-        console.log('userInThisRoom:');
+        console.log('[userInThisRoom]_Room Number['+ data.room+']:'); 
         console.log(usersInThisRoom);
 
+        //Download Stream 생성 시작
         io.sockets.to(socket.id).emit('all_users', usersInThisRoom);
     });
 
     socket.on('offer', data => {
-        //console.log(data.sdp);
-        socket.to(data.offerReceiveID).emit('getOffer', { sdp: data.sdp, offerSendID: data.offerSendID, offerSendEmail: data.offerSendEmail });
+      //  console.log(data.sdp);
+        socket.to(data.offerReceiveID).emit('getOffer', data);
     });
 
     socket.on('answer', data => {
-        //console.log(data.sdp);
-        socket.to(data.answerReceiveID).emit('getAnswer', { sdp: data.sdp, answerSendID: data.answerSendID });
+      //  console.log(data.sdp);
+        socket.to(data.answerReceiveID).emit('getAnswer', data);
     });
 
     socket.on('candidate', data => {
-        //console.log(data.candidate);
-        socket.to(data.candidateReceiveID).emit('getCandidate', { candidate: data.candidate, candidateSendID: data.candidateSendID });
+        //console.log(data);
+        socket.to(data.candidateReceiveID).emit('getCandidate', { candidate: data.candidate, candidateSendID: data.candidateSendID,mode:data.mode , targetSocketID : data.targetSocketID});
     });
     socket.on('offerDisconnected', data => {
         const roomID = socketIdToRoom[socket.id];
-        let offerUser = roomToUsers[roomID].filter(user => user.id == socket.id)[0];
-        socket.to(data.offerSendAnswerId).emit('offerDisconnected', { offerUser: offerUser, retryNum: data.retryNum });
-        console.log('offerDisconnected : ');
+        let offerUser = null;
+        if(data.mode=="up")
+            offerUser={id:SFUsocketID};
+        else
+            offerUser = roomToUsers[roomID].filter(user => user.id == socket.id)[0];
+
+        socket.to(data.offerSendAnswerId).emit('offerDisconnected', { offerUser, retryNum: data.retryNum , mode:data.mode });
+        console.log('offerDisconnected : ');      
         console.log(offerUser);
     });
+    socket.on('newSenderEnter',data=>{
+        console.log("newSenderEnter");
+        let roomNumber = socketIdToRoom[data.socketID];
+        socket.broadcast.to(roomNumber).emit('newSenderEnter', data);
+    });
 
-    socket.on('exit', () => {
+    socket.on('exit',exitFunc);
+    socket.on("disconnect", (reason) => {
+        exitFunc();        
+        console.log("socket disconnected : "+ reason);
+       // socket.connect();
+    });
+
+    function exitFunc(){
         console.log(`[${socketIdToRoom[socket.id]}]: ${socket.id} exit`);
         const roomID = socketIdToRoom[socket.id];
         let room = roomToUsers[roomID];
@@ -89,10 +117,7 @@ io.on('connection', socket => {
         }
         socket.to(roomID).emit('user_exit', { id: socket.id });
         console.log(`disconnected: ${roomToUsers}`);
-    });
-    socket.on("disconnect", (reason) => {
-        console.log("socket disconnected : "+ reason);
-    });
+    }
 });
 
 server.listen(PORT, () => {

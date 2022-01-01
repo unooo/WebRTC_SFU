@@ -6,6 +6,7 @@
     <title>Page Title</title>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <link href="main.css" rel="stylesheet">
+    <link rel="icon" href="data:,"> 
     <script src="/socket.io/socket.io.js"></script>
     <script src="clientWebRTC_SFU.js"></script>
     <script>
@@ -13,8 +14,13 @@
         let videoGrid;
         let connectionStateSpan;        
         let MyRTCData;
+        let email;
         window.onload = function () {
+            try{
             refreshMyConnection();
+            }catch(err){
+                alert(err);
+            }
         }
         
         function disconnectMyConnection() {
@@ -33,7 +39,8 @@
             localVideo = document.getElementById('localVideo');
             videoGrid = document.getElementById('video-grid');
             connectionStateSpan = document.getElementById('connectionStateSpan');
-            MyRTCData = App(localVideo,videoGrid ,connectionStateSpan);            
+            email='sample@naver.com' ;
+            MyRTCData = App(localVideo,videoGrid ,connectionStateSpan,email);            
         }
         function removeVideoAll() {
             MyRTCData.remoteVideos.forEach(delVideo => {
@@ -42,6 +49,11 @@
                 delVideo.parentNode.remove();
 
             })
+        }
+        function testBtn(){
+           
+            /* downloadStream 생성 시작 */       
+            MyRTCData.socket.emit('join_room', { room: '1234', email });
         }
 
     </script>
@@ -62,7 +74,8 @@
           " id="localVideo" muted playsinline autoplay>
         </video>
     </div>
-    <div>Other Video</div>
+    <div>Other Video</div>    
+    <input type="button" id = "btn" onclick = "testBtn()">
 </body>
 
 </html>
