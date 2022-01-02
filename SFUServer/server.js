@@ -7,8 +7,8 @@ let socket = io('https://www.unoo.kro.kr', {
 });
 const pc_config_stun = {
     "iceServers": [
-        {   urls: 'stun:stun.l.google.com:19302'}
-        , 
+        { urls: 'stun:stun.l.google.com:19302' }
+        ,
         { urls: 'turn:58.238.248.102:3478', 'credential': 'myPw', 'username': 'myId' }
     ]
 }
@@ -45,21 +45,21 @@ socket.on('getCandidate', async (data) => {
         pc = senderPCs[data.candidateSendID];
     } else {
         pc = (receiverPCs[data.candidateSendID])[data.targetSocketID];
-    } 
+    }
 
     if (pc)
-    pc.addIceCandidate( new wrtc.RTCIceCandidate(data.candidate)).then(() => {
-        console.log(data.mode+ 'candidate add success');
-    }).catch(err=>{
-        console.error(err);
-    });
-    else{
+        pc.addIceCandidate(new wrtc.RTCIceCandidate(data.candidate)).then(() => {
+            console.log(data.mode + 'candidate add success');
+        }).catch(err => {
+            console.error(err);
+        });
+    else {
         console.error("Cannot Find Peer Connection Error_Client Runtime Error");
     }
 })
- /*소켓 연결이 끊긴 상대에 대한 처리 리스너*/
- socket.on('user_exit', async (data) => {
-    console.log("peer exit");      
+/*소켓 연결이 끊긴 상대에 대한 처리 리스너*/
+socket.on('user_exit', async (data) => {
+    console.log("peer exit");
     peerExit(data.id);
 })
 
@@ -80,16 +80,16 @@ socket.on("connect_error", (error) => {
 const createAnswer = async (data) => {
     console.log('create answer');
     let targetStream = data.mode == "up" ? null : senderStream[data.targetSocketID];
-    console.debug(data.targetSocketID+" targetStream:" +targetStream);
+    console.debug(data.targetSocketID + " targetStream:" + targetStream);
     let pc = createPeerConnection(data.offerSendID, data.offerSendEmail, socket, targetStream, data.mode, data.targetSocketID);
 
     offers.push(data.offerSendID);
     if (pc) {
         try {
-            await pc.setRemoteDescription(  new wrtc.RTCSessionDescription(data.sdp)).then(() => {               
+            await pc.setRemoteDescription(new wrtc.RTCSessionDescription(data.sdp)).then(() => {
                 let offerBoolOpt = data.mode == "up" ? true : false;
-                pc.createAnswer({ offerToReceiveVideo: offerBoolOpt, offerToReceiveAudio: offerBoolOpt }).then(sdp => {                    
-                    pc.setLocalDescription( new wrtc.RTCSessionDescription(sdp));                    
+                pc.createAnswer({ offerToReceiveVideo: offerBoolOpt, offerToReceiveAudio: offerBoolOpt }).then(sdp => {
+                    pc.setLocalDescription(new wrtc.RTCSessionDescription(sdp));
                     socket.emit('answer', {
                         sdp: sdp,
                         answerSendID: socket.id, // SFU 서버의 소켓 아이디로 고정
@@ -98,7 +98,7 @@ const createAnswer = async (data) => {
                         targetSocketID: data.targetSocketID
                     });
                 })
-            }).catch(error=>{
+            }).catch(error => {
                 console.error(error);
             });
         }
@@ -106,7 +106,7 @@ const createAnswer = async (data) => {
             console.error(error);
         }
 
-    }else{
+    } else {
         console.error("Cannot Find Peer Connection Error_Client Runtime Error");
     }
 
@@ -116,21 +116,23 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
     let pc = new wrtc.RTCPeerConnection(pc_configs[socketID]);
     console.log("mode:" + mode);
     if (mode == "up") {
-        if(senderPCs[socketID] )
-            console.error("여기더ㅏ");
+        if (senderPCs[socketID]) {
+            console.error("sender pc duplicate error occur");
+        }
+
         senderPCs[socketID] = pc;
         receiverPCs[socketID] = {};
     } else {
-        if((receiverPCs[socketID])[targetSocketID])
-            console.error("여기다");
-        (receiverPCs[socketID])[targetSocketID]=pc;
+        if ((receiverPCs[socketID])[targetSocketID])
+            console.error("receiver pc dupliccate error occur");
+        (receiverPCs[socketID])[targetSocketID] = pc;
     }
     pc_configs[socketID] = {};
     pc_configs[socketID].iceServers = pc_config_turn.iceServers; //고치긴해야될듯
     retryNums[socketID] = 0;
     pc.onicecandidate = (e) => {
-        console.log(mode+" createPC and candidate");
-        if (e.candidate) {          
+        console.log(mode + " createPC and candidate");
+        if (e.candidate) {
             socket.emit('candidate', {
                 candidate: e.candidate,
                 candidateSendID: socket.id,// SFU 서버의 소켓 아이디로 고정
@@ -145,15 +147,15 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
         console.log("onconnectionstatechange:" + pc.connectionState);
         switch (pc.connectionState) {
             case "connected":
-                if(mode=="up"){
-                    socket.emit("newSenderEnter", {socketID,email});
+                if (mode == "up") {
+                    socket.emit("newSenderEnter", { socketID, email });
                 }
                 break;
             case "disconnected":
                 ;
                 break;
             case "failed":
-                console.error("failed ","SendSocketID : "+socketID, + ", SFUSocketID: " + socket.id,", Mode: "+ mode,", TargetSocketID: "+targetSocketID);
+                console.error("failed ", "SendSocketID : " + socketID, + ", SFUSocketID: " + socket.id, ", Mode: " + mode, ", TargetSocketID: " + targetSocketID);
                 /*
                 // One or more transports has terminated unexpectedly or in an error                          
                 let retryNum = retryNums[socketID];
@@ -183,7 +185,6 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
                 break;
             default:
                 console.error(pc.connectionState);
-
         }
 
     }
@@ -213,7 +214,7 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
             targetStream.getTracks().forEach(track => {
                 pc.addTrack(track, targetStream);
                 console.log("add track success");
-            });          
+            });
         } else {
             console.error('no target stream');
         }
@@ -226,7 +227,7 @@ function peerExit(socketID) {
     senderPCs[socketID].close();
     delete senderPCs[socketID];
 
-    for(let targetSocketID in (receiverPCs[socketID]) ){
+    for (let targetSocketID in (receiverPCs[socketID])) {
         (receiverPCs[socketID])[targetSocketID].close();
         delete (receiverPCs[socketID])[targetSocketID];
     }

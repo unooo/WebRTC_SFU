@@ -10,7 +10,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
     const pc_config_turn = {
         "iceServers": [
             { 'urls': 'turn:58.238.248.102:3478', 'credential': 'myPw', 'username': 'myId' }
-            //{'urls':'turn:13.209.48.46:3478','credential': 'myPw','username': 'myId'}                    
+            //{'urls':'turn:13.209.48.46:3478','credential': 'myPw','username': 'myId'} //AWS Tern Server                   
         ]
     }
     const video_config = {
@@ -19,9 +19,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         margin: 5,
         backgroundColor: 'black',
     }
-
     const retryMax = 1;
-
     let pc_config = {};
     let pcs = {};
     let offers = [];
@@ -31,7 +29,6 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
     let socket = io({ transports: ['websocket'] });
     socket.connect('https://www.unoo.kro.kr');
     let localStream;
-
 
     socket.on('connect', () => {
         connectionStateSpan.innerText = "접속중";
@@ -59,8 +56,9 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             createOffer({ id: SFUsocketID, email }, socket, localStream, "up")
 
             /* downloadStream 생성 시작 */
-          setTimeout(function(){
-              socket.emit('join_room', { room: '1234', email })},0);
+            setTimeout(function () {
+                socket.emit('join_room', { room: '1234', email })
+            }, 0);
 
         }).catch(error => {
             console.error(`getUserMedia error: ${error}`);
@@ -74,10 +72,10 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
     });
 
     /* Receiver - 신규 접속자에 대한 DownStream Peer 생성  */
-    socket.on('newSenderEnter', data=>{
-        if(data.socketID==socket.id)
+    socket.on('newSenderEnter', data => {
+        if (data.socketID == socket.id)
             return;
-        createOffer({id:data.socketID,email:data.email}, socket, null, "down");
+        createOffer({ id: data.socketID, email: data.email }, socket, null, "down");
     });
 
     /* 현재 불리지 않는 이벤트 */
@@ -165,10 +163,10 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             let offerBoolOpt = mode == "up" ? false : true;
             pc.createOffer({ offerToReceiveAudio: offerBoolOpt, offerToReceiveVideo: offerBoolOpt }).then(sdp => {
                 console.log('create offer success');
-                pc.setLocalDescription(new RTCSessionDescription(sdp)).then(()=>{ 
-                if(mode=='down')
-                    alert(JSON.stringify(sdp));
-                        //alert(offerBoolOpt+"  "+pc.localDescription.sdp);                
+                pc.setLocalDescription(new RTCSessionDescription(sdp)).then(() => {
+                    if (mode == 'down')
+                        alert(JSON.stringify(sdp));
+                    //alert(offerBoolOpt+"  "+pc.localDescription.sdp);                
                     socket.emit('offer', {
                         sdp: sdp,
                         offerSendID: socket.id,
@@ -178,11 +176,11 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
                         targetSocketID: user.id
                     });
                 }).catch((err) => alert(err));
-                
+
             }).catch(error => {
-                    console.error(error);
-                    alert();
-                });
+                console.error(error);
+                alert();
+            });
         } else {
             console.error("Cannot Find Peer Connection Error_Client Runtime Error");
             alert("오류발생 - 관리자 문의 요청 ");
@@ -221,8 +219,8 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
     // }
     const createPeerConnection = (socketID, email, socket, stream, mode) => {
         let pc = new RTCPeerConnection(pc_config);
-        if(pcs[socketID])
-            alert("여기임여기");
+        if (pcs[socketID])
+            alert("pc duplicate error occur");
         pcs[socketID] = pc;
 
         pc.onicecandidate = (e) => {
@@ -244,8 +242,8 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             let videoTag = mode == 'down' ? document.getElementById(socketID + "-idTag") : localVideo;
             switch (pc.connectionState) {
                 case "connected":
-                    if(!videoTag)
-                        videoTag=makeOtherVideo(socketID, email);
+                    if (!videoTag)
+                        videoTag = makeOtherVideo(socketID, email);
                     videoTag.setAttribute("data-retryNum", 0)
                     videoTag.innerHTML = socketID; //SFUsocketID 와 동일
                     break;
@@ -294,20 +292,20 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
 
         }
 
-        
+
         pc.oniceconnectionstatechange = (e) => {
             //disconnected는 새로고침이나 뒤로가기등등에 적용됨 
-            console.log(mode+ " " +pc.iceConnectionState);
+            console.log(mode + " " + pc.iceConnectionState);
             console.log("oniceconnectionstatechange : " + pc.iceConnectionState);
-            if(pc.iceConnectionState === "failed") {
-            }else if (pc.connectionState != 'connecting' && pc.iceConnectionState === "disconnected") {
+            if (pc.iceConnectionState === "failed") {
+            } else if (pc.connectionState != 'connecting' && pc.iceConnectionState === "disconnected") {
                 //정상 연결중 새로고침
-            }else if (pc.connectionState == 'connecting' && pc.iceConnectionState === "disconnected") {
-            }else if (pc.iceConnectionState === "closed") {
-            }else {                
+            } else if (pc.connectionState == 'connecting' && pc.iceConnectionState === "disconnected") {
+            } else if (pc.iceConnectionState === "closed") {
+            } else {
             }
         }
-        
+
         /* 다운로드일 때만 수행되는 이벤트 - Stream 수신 */
         pc.ontrack = (e) => {
             console.log('ontrack success');
@@ -321,18 +319,18 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         }
 
         /* 업로드 일때만 수행되는 분기문 - Stream 송신 */
-        // 모바일 기종에서 pc.addTrack 하지 않는경우 sdp 오류 발생 하므로 주석처리
-        //if (mode == 'up') {
-            if (localStream) {
-                console.log('localstream add');
-                localStream.getTracks().forEach(track => {
-                    pc.addTrack(track, localStream);
-                });
-            } else {
-                console.error('no local stream');
-                alert('no local stream');
-            }
-        //}
+        /* 하지만 모바일 기종에서 pc.addTrack 하지 않는경우 sdp 오류 발생 하므로 하단의 if 조건 주석처리 */
+        //if (mode == 'up') 
+        if (localStream) {
+            console.log('localstream add');
+            localStream.getTracks().forEach(track => {
+                pc.addTrack(track, localStream);
+            });
+        } else {
+            console.error('no local stream');
+            alert('no local stream');
+        }
+        
         return pc;
     }
 
