@@ -1,7 +1,6 @@
 # WebRTC_SFU
-SFU(Selective Forwarding Unit) 서버 구현 - Hybrid P2P 서버
-![Mesh_SFU_MCU](https://user-images.githubusercontent.com/30948477/146751325-1ba6aed2-e645-4404-8d9e-d5434527c747.png)
-
+**SFU(Selective Forwarding Unit)** 서버 구현 - Hybrid P2P 서버
+![image](https://user-images.githubusercontent.com/30948477/147924185-dedabd4b-7c91-4c99-9b73-b43f028fb643.png)
 ---
 ## 프로젝트 목적
 ### 1. WebRTC 기술 이해 및 Useability Upgrade
