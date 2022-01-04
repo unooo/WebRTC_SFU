@@ -18,6 +18,7 @@
         window.onload = function () {
             try{
             refreshMyConnection();
+            
             }catch(err){
                 alert(err);
             }
@@ -50,8 +51,7 @@
 
             })
         }
-        function testBtn(){
-           
+        function testBtn(){           
             /* downloadStream 생성 시작 */       
             MyRTCData.socket.emit('join_room', { room: '1234', email });
         }
