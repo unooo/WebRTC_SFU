@@ -63,19 +63,16 @@ io.on('connection', socket => {
         //Download Stream 생성 시작
         io.sockets.to(socket.id).emit('all_users', usersInThisRoom);
     });
-
-    socket.on('offer', data => {
-      //  console.log(data.sdp);
+    /* From client To SFU server */
+    socket.on('offer', data => {     
         socket.to(data.offerReceiveID).emit('getOffer', data);
     });
-
-    socket.on('answer', data => {
-      //  console.log(data.sdp);
+    /* From SFU Server To Client */
+    socket.on('answer', data => {      
         socket.to(data.answerReceiveID).emit('getAnswer', data);
     });
 
-    socket.on('candidate', data => {
-        //console.log(data);
+    socket.on('candidate', data => {       
         socket.to(data.candidateReceiveID).emit('getCandidate', { candidate: data.candidate, candidateSendID: data.candidateSendID,mode:data.mode , targetSocketID : data.targetSocketID});
     });
     socket.on('offerDisconnected', data => {
@@ -115,7 +112,8 @@ io.on('connection', socket => {
                 return;
             }
         }
-        socket.to(roomID).emit('user_exit', { id: socket.id });
+        socket.to(roomID).emit('user_exit', { id: socket.id });      
+        socket.to(SFUsocketID).emit('user_exit', { id: socket.id }); 
         console.log(`disconnected: ${roomToUsers}`);
     }
 });

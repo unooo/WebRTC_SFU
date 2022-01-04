@@ -32,8 +32,6 @@ socket.on('connect', () => {
     socket.emit('SFUAccess');
 });
 
-
-
 socket.on('getOffer', (data) => {
     createAnswer(data);
 });
@@ -230,6 +228,15 @@ function peerExit(socketID) {
     for (let targetSocketID in (receiverPCs[socketID])) {
         (receiverPCs[socketID])[targetSocketID].close();
         delete (receiverPCs[socketID])[targetSocketID];
+    }
+
+    for(let outerSocketID in receiverPCs ){
+        for(let innerSocketID in receiverPCs[outerSocketID]){
+            if(innerSocketID==socketID){
+                (receiverPCs[outerSocketID])[innerSocketID].close();
+                 delete (receiverPCs[outerSocketID])[innerSocketID];
+            }
+        }
     }
 
     for (let i = 0; i < answers.length; i++) {

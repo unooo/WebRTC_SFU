@@ -53,11 +53,11 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             localStream = stream;
 
             /* uploadStream 생성 시작 */
-            createOffer({ id: SFUsocketID, email }, socket, localStream, "up")
-
-            /* downloadStream 생성 시작 */
+            createOffer({ id: SFUsocketID, email }, socket, localStream, "up");
+                
             setTimeout(function () {
-                socket.emit('join_room', { room: '1234', email })
+                /* downloadStream 생성 시작 */
+                socket.emit('join_room', { room: '1234', email });
             }, 0);
 
         }).catch(error => {
@@ -78,12 +78,13 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         createOffer({ id: data.socketID, email: data.email }, socket, null, "down");
     });
 
-    /* 현재 불리지 않는 이벤트 */
+    /* 현재 Client에서 불리지 않는 이벤트 */
     socket.on('getOffer', (data) => {
         createAnswer(data);
     });
 
     /* 클라이언트가 SFU 서버에 보낸 Offer에 대한 SFU 서버의 Answer를 받는 이벤트 리스너 */
+    /* 즉 서버가 정상적으로 offer를 받고 answer를 보냈음이 보장 */
     socket.on('getAnswer', async (data) => {
         console.log("getAnswer");
         let pc = pcs[data.targetSocketID]; // 논란
@@ -91,8 +92,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             pc.setRemoteDescription(new RTCSessionDescription(data.sdp)).then(() => {
                 console.log("success");
             }).catch((error) => {
-                console.error(error);
-                alert();
+                console.error(error);                
             });
         } else {
             console.error("Cannot Find Peer Connection Error_Client Runtime Error");
@@ -109,8 +109,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             pc.addIceCandidate(new RTCIceCandidate(data.candidate)).then(() => {
                 console.log('candidate add success');
             }).catch(err => {
-                console.error(err);
-                alert();
+                console.error(err);               
             });
         } else {
             console.error("Cannot Find Peer Connection Error_Client Runtime Error");
@@ -151,7 +150,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
     /*소켓 연결이 끊긴 상대에 대한 처리 리스너*/
     socket.on('user_exit', async (data) => {
         console.log("peer exit");
-        // peerExit(data.id, true); - 처리 필요
+        peerExit(data.id, true); 
     });
 
     const createOffer = async (user, socket, stream, mode) => {
@@ -164,9 +163,9 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             pc.createOffer({ offerToReceiveAudio: offerBoolOpt, offerToReceiveVideo: offerBoolOpt }).then(sdp => {
                 console.log('create offer success');
                 pc.setLocalDescription(new RTCSessionDescription(sdp)).then(() => {
-                    if (mode == 'down')
-                        alert(JSON.stringify(sdp));
-                    //alert(offerBoolOpt+"  "+pc.localDescription.sdp);                
+                    //  if (mode == 'down')
+                    //      alert(JSON.stringify(sdp));
+                                    
                     socket.emit('offer', {
                         sdp: sdp,
                         offerSendID: socket.id,
@@ -219,8 +218,11 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
     // }
     const createPeerConnection = (socketID, email, socket, stream, mode) => {
         let pc = new RTCPeerConnection(pc_config);
-        if (pcs[socketID])
-            alert("pc duplicate error occur");
+        if (pcs[socketID]){
+           // debugger;
+           // alert("pc duplicate error occur");
+        }
+            
         pcs[socketID] = pc;
 
         pc.onicecandidate = (e) => {
@@ -242,8 +244,9 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             let videoTag = mode == 'down' ? document.getElementById(socketID + "-idTag") : localVideo;
             switch (pc.connectionState) {
                 case "connected":
-                    if (!videoTag)
-                        videoTag = makeOtherVideo(socketID, email);
+                    if (!videoTag){
+                        videoTag = makeOtherVideo(socketID, email).idTag;
+                    }
                     videoTag.setAttribute("data-retryNum", 0)
                     videoTag.innerHTML = socketID; //SFUsocketID 와 동일
                     break;
@@ -251,8 +254,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
                     ;
                     break;
                 case "failed":
-                    console.error("failed");
-                    alert("failed");
+                    console.error("failed");                   
                     /*
                     // One or more transports has terminated unexpectedly or in an error                          
                     let retryNum = parseInt(videoTag.getAttribute("data-retryNum")) + 1;
@@ -310,12 +312,12 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         pc.ontrack = (e) => {
             console.log('ontrack success');
             let remoteVideo = remoteVideos.filter(user => user.id == socketID)[0];
-            if (!remoteVideo) {
-                // some thing wrong
-                makeOtherVideo(socketID, email);
-            } else {
-                remoteVideo.srcObject = e.streams[0];
-            }
+            if (!remoteVideo) {               
+                remoteVideo= makeOtherVideo(socketID, email).video;
+            }           
+       
+                remoteVideo.srcObject = e.streams[0];            
+          
         }
 
         /* 업로드 일때만 수행되는 분기문 - Stream 송신 */
@@ -370,7 +372,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         divOuter.append(video);
         divOuter.append(idTag);
         document.body.append(divOuter);
-        return video;
+        return {video,idTag};
     }
     function removeVideo(socketID) {
         for (let i = 0; i < remoteVideos.length; i++) {
