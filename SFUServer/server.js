@@ -29,7 +29,9 @@ const retryMax = 1;
 
 socket.on('connect', () => {
     console.log('[Signal Server Connected] my socket id :' + socket.id);
-    socket.emit('SFUAccess');
+    socket.emit('SFUAccess',(args)=>{
+        console.log(args);
+    });
 });
 
 socket.on('getOffer', (data) => {
