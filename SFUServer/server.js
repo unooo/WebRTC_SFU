@@ -88,7 +88,7 @@ const doRetryPeerConnection = (data)=>{
             senderPCs[data.offerSendId].close();
             delete senderPCs[data.offerSendId];
         }else{
-            if(!(receiverPCs[data.offerSendId])[data.targetSocketID])
+            if(!!(receiverPCs[data.offerSendId])||!(receiverPCs[data.offerSendId])[data.targetSocketID])
                 return;
             (receiverPCs[data.offerSendId])[data.targetSocketID].close();
             delete (receiverPCs[data.offerSendId])[data.targetSocketID];        
