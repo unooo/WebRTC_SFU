@@ -22,6 +22,7 @@ describe("Signal Server Socket Test", () => {
       clientSocket_A = new Client(`http://localhost:${port}`);
       clientSocket_B = new Client(`http://localhost:${port}`);
 
+
       io.on("connection", (socket) => {
         serverSockets[socket.id] = socket;
         my_socket_server_ret = my_socket_server(socket, io);
@@ -79,12 +80,29 @@ describe("Signal Server Socket Test", () => {
   })
 
   test("candidate test", (done) => {
-    clientSocket_B.on("getCandidate", data => {
+    clientSocket_B.on("getCandidate", (data) => {
       expect(data.candidateSendID).toBe(clientSocket_A.id);
       done();
     });
     clientSocket_A.emit("candidate", { candidateSendID: clientSocket_A.id, candidateReceiveID: clientSocket_B.id });
+  });
+  test("offerDisconnected test", (done) => {
+    clientSocket_B.on("offerDisconnected", data => {
+      expect(data.offerSendId).toBe(clientSocket_A.id);
+      done();
+    });
+    clientSocket_A.emit("offerDisconnected", { offerSendId: clientSocket_A.id, offerSendAnswerId: clientSocket_B.id });
   })
+
+  test("doReTry test", (done) => {
+    clientSocket_B.on("doReTry", data => {
+      expect(data.offerSendOfferId).toBe(clientSocket_A.id);
+      done();
+    });
+    clientSocket_A.emit("doReTry", { offerSendOfferId: clientSocket_A.id, offerSendAnswerId: clientSocket_B.id });
+  })
+
+
 
   test("new_sender_enter test",(done)=>{
     let roomID='room-1';

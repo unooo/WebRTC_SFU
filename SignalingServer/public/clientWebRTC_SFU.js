@@ -54,7 +54,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
 
             /* uploadStream 생성 시작 */
             createOffer({ id: SFUsocketID, email }, socket, localStream, "up");
-                
+
             setTimeout(function () {
                 /* downloadStream 생성 시작 */
                 socket.emit('join_room', { room: '1234', email });
@@ -78,10 +78,6 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         createOffer({ id: data.socketID, email: data.email }, socket, null, "down");
     });
 
-    /* 현재 Client에서 불리지 않는 이벤트 */
-    socket.on('getOffer', (data) => {
-        createAnswer(data);
-    });
 
     /* 클라이언트가 SFU 서버에 보낸 Offer에 대한 SFU 서버의 Answer를 받는 이벤트 리스너 */
     /* 즉 서버가 정상적으로 offer를 받고 answer를 보냈음이 보장 */
@@ -92,7 +88,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             pc.setRemoteDescription(new RTCSessionDescription(data.sdp)).then(() => {
                 console.log("success");
             }).catch((error) => {
-                console.error(error);                
+                console.error(error);
             });
         } else {
             console.error("Cannot Find Peer Connection Error_Client Runtime Error");
@@ -109,7 +105,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             pc.addIceCandidate(new RTCIceCandidate(data.candidate)).then(() => {
                 console.log('candidate add success');
             }).catch(err => {
-                console.error(err);               
+                console.error(err);
             });
         } else {
             console.error("Cannot Find Peer Connection Error_Client Runtime Error");
@@ -117,40 +113,21 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         }
     })
 
-    /* SFU Server가 Offer일때 연결이 Failed라면 Answer였던 클라이언트가 Offer로, Offer였던 SFU서버가 Answer로 통신하도록 하는 리스너  */
-    /*
-    socket.on('offerDisconnected', (data) => {
-        console.log('get offerDisconnected');
-        let delVideoFlag;
-        if (data.retryNum > retryMax) {
-            if (window.confirm("[연결실패]-연결시도 초과 \n 유료 연결을 요청하시겠습니까?(turn 서버 사용)")) {
-                data.retryNum = 0;
-                delVideoFlag = true;
-                pc_config.iceServers = pc_config_turn.iceServers;
-            } else {
-                peerExit(data.socketID, false); // 고쳐야할듯                
-                return;
-            }
-        } else {
-            let videoTag = mode == 'down' ? document.getElementById(socketID + "-idTag") : localVideo;
-            videoTag.innerHTML = "[연결실패]-재시도 횟수 :" + (data.retryNum) + "/" + retryMax;
-            delVideoFlag = false;
-        }
-        if (mode == 'up') delVideoFlag = false;
-        let pc = pcs[data.offerUser.id];
-        if (pc) {
-            peerExit(data.offerUser.id, delVideoFlag);
-        } else {
-            console.error("Cannot Find Peer Connection Error_Client Runtime Error");
-            alert("오류발생 - 관리자 문의 요청 ");
-        }
-        createOffer(data.offerUser, socket, localStream);
-    })
-*/
     /*소켓 연결이 끊긴 상대에 대한 처리 리스너*/
     socket.on('user_exit', async (data) => {
         console.log("peer exit");
-        peerExit(data.id, true); 
+        peerExit(data.id, true);
+    });
+
+    socket.on('doRetry',(data)=>{
+        if (data.mode == 'up') {
+            /* uploadStream 재생성 시작 */
+            createOffer({ id: SFUsocketID, email }, socket, localStream, "up");
+        } else {
+            /* downloadStream 재생성 시작 */
+            createOffer({ id: data.targetSocketID, email: data.email }, socket, null, "down");
+        }
+
     });
 
     const createOffer = async (user, socket, stream, mode) => {
@@ -165,7 +142,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
                 pc.setLocalDescription(new RTCSessionDescription(sdp)).then(() => {
                     //  if (mode == 'down')
                     //      alert(JSON.stringify(sdp));
-                                    
+
                     socket.emit('offer', {
                         sdp: sdp,
                         offerSendID: socket.id,
@@ -186,43 +163,14 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         }
     }
 
-    // const createAnswer = async (data) => {
-    //     console.log('create answer');
-    //     createPeerConnection(data.offerSendID, data.offerSendEmail, socket, localStream,data.mode);
-    //     let pc = pcs[data.offerSendID];
-    //     offers.push(data.offerSendID);
-    //     if (pc) {
-    //         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
-    //         console.log('answer set remote description success');
 
-    //         try {
-    //             let offerBoolOpt = data.mode=="up"? true : false;
-    //             let sdp = await pc.createAnswer({ offerToReceiveVideo: offerBoolOpt, offerToReceiveAudio: offerBoolOpt });
-    //             console.log('create answer[sdp] success');
-
-    //             pc.setLocalDescription(new RTCSessionDescription(sdp));
-    //             socket.emit('answer', {
-    //                 sdp: sdp,
-    //                 answerSendID: socket.id,
-    //                 answerReceiveID: SFUsocketID, // SFU 서버의 소켓 아이디로 고정
-    //                 mode,
-    //                 targetSocketID : data.offerSendID
-    //             });
-    //         }
-    //         catch (error) {
-    //             console.log(error);
-    //         }
-
-    //     }
-
-    // }
     const createPeerConnection = (socketID, email, socket, stream, mode) => {
         let pc = new RTCPeerConnection(pc_config);
-        if (pcs[socketID]){
-           // debugger;
-           // alert("pc duplicate error occur");
+        if (pcs[socketID]) {
+            // debugger;
+            // alert("pc duplicate error occur");
         }
-            
+
         pcs[socketID] = pc;
 
         pc.onicecandidate = (e) => {
@@ -244,54 +192,37 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             let videoTag = mode == 'down' ? document.getElementById(socketID + "-idTag") : localVideo;
             switch (pc.connectionState) {
                 case "connected":
-                    if (!videoTag){
+                    if (!videoTag) {
                         videoTag = makeOtherVideo(socketID, email).idTag;
                     }
-                    videoTag.setAttribute("data-retryNum", 0)
+                    videoTag.setAttribute("data-retryNum", 0);
                     videoTag.innerHTML = socketID; //SFUsocketID 와 동일
                     break;
                 case "disconnected":
                     ;
                     break;
                 case "failed":
-                    console.error("failed");                   
-                    /*
-                    // One or more transports has terminated unexpectedly or in an error                          
-                    let retryNum = parseInt(videoTag.getAttribute("data-retryNum")) + 1;
-                    videoTag.setAttribute("data-retryNum", retryNum);
-                    videoTag.innerHTML = "[SFU 서버와 RTCPeer 연결실패]-재시도 횟수 :" + (retryNum) + "/" + retryMax;
-                    for (let i = 0; i < answers.length; i++) {
-                        if (answers[i] == socketID) {
-                            let delVideoFlag = false;
-                            if (retryNum > retryMax) {
-                                if (window.confirm("[SFU 서버와 RTCPeer 연결실패]-연결시도 초과 \n 유료 연결을 요청하시겠습니까?")) {
-                                    pc_config.iceServers = pc_config_turn.iceServers;
-                                    delVideoFlag = true;
-                                } else {
-                                    peerExit(socketID, false);
-                                    return;
-                                }
-                            }
-                            if(mode=='up') delVideoFlag = false;
-
-                            peerExit(socketID, delVideoFlag);
-                            socket.emit('offerDisconnected', {
-                                offerSendOfferId: socket.id,//myId
-                                offerSendAnswerId: SFUsocketID, // SFU 서버의 소켓아이디로 고정
-                                retryNum: retryNum,
-                                mode,
-                                targetSocketID: socketID
-                            });
-                        }
+                    console.error("failed");
+                    // One or more transports has terminated unexpectedly or in an error
+                    peerExit(socketID, delVideoFlag);
+                    let retryNum = videoTag.getAttribute("data-retryNum");
+                    if(retryNum>retryMax){
+                        alert("연결불가, 최대연결재시도 횟수 초과");
+                        return ;
                     }
-                    */
+                    videoTag.setAttribute("data-retryNum", retryNum+1);                    
+                    socket.emit('offerDisconnected', {
+                        offerSendOfferId: socket.id,//myId
+                        offerSendAnswerId: SFUsocketID, // SFU 서버의 소켓아이디로 고정                       
+                        mode,
+                        targetSocketID: socketID
+                    });
                     break;
                 case "closed":
                     // The connection has been closed                          
                     ;
                     break;
             }
-
         }
 
 
@@ -312,12 +243,12 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         pc.ontrack = (e) => {
             console.log('ontrack success');
             let remoteVideo = remoteVideos.filter(user => user.id == socketID)[0];
-            if (!remoteVideo) {               
-                remoteVideo= makeOtherVideo(socketID, email).video;
-            }           
-       
-                remoteVideo.srcObject = e.streams[0];            
-          
+            if (!remoteVideo) {
+                remoteVideo = makeOtherVideo(socketID, email).video;
+            }
+
+            remoteVideo.srcObject = e.streams[0];
+
         }
 
         /* 업로드 일때만 수행되는 분기문 - Stream 송신 */
@@ -332,13 +263,15 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
             console.error('no local stream');
             alert('no local stream');
         }
-        
+
         return pc;
     }
 
     function peerExit(socketID, delVideoFlag) {
-        pcs[socketID].close();
-        delete pcs[socketID];
+        if(pcs[socketID]){
+            pcs[socketID].close();
+            delete pcs[socketID];
+        }
         for (let i = 0; i < answers.length; i++) {
             if (offers[i] == socketID)
                 delete offers[i];
@@ -372,7 +305,7 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
         divOuter.append(video);
         divOuter.append(idTag);
         document.body.append(divOuter);
-        return {video,idTag};
+        return { video, idTag };
     }
     function removeVideo(socketID) {
         for (let i = 0; i < remoteVideos.length; i++) {

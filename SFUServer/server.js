@@ -76,6 +76,37 @@ socket.on('error', (error) => {
 socket.on("connect_error", (error) => {
     console.log(error);
 });
+socket.on('offerDisconnected', (data) => {  
+    doRetryPeerConnection(data);
+});
+
+const doRetryPeerConnection = (data)=>{
+    try {
+        if(data.mode=='up'){
+            if(! senderPCs[data.offerSendId])
+                return;
+            senderPCs[data.offerSendId].close();
+            delete senderPCs[data.offerSendId];
+        }else{
+            if(!(receiverPCs[data.offerSendId])[data.targetSocketID])
+                return;
+            (receiverPCs[data.offerSendId])[data.targetSocketID].close();
+            delete (receiverPCs[data.offerSendId])[data.targetSocketID];        
+        }
+    
+        for (let i = 0; i < answers.length; i++) {
+            if (offers[i] == data.offerSendId)
+                delete offers[i];
+            if (answers[i] == data.offerSendId)
+                delete answers[i];
+        }
+        
+    } catch (error) {
+        console.log(error);
+    }
+    socket.emit("doReTry",data);
+}
+
 
 const createAnswer = async (data) => {
     console.log('create answer');
@@ -105,7 +136,6 @@ const createAnswer = async (data) => {
         catch (error) {
             console.error(error);
         }
-
     } else {
         console.error("Cannot Find Peer Connection Error_Client Runtime Error");
     }
@@ -147,7 +177,7 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
         console.log("onconnectionstatechange:" + pc.connectionState);
         switch (pc.connectionState) {
             case "connected":
-                if (mode == "up") {
+                if (mode == "up") {                    
                     socket.emit("newSenderEnter", { socketID, email });
                 }
                 break;
@@ -155,29 +185,9 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
                 ;
                 break;
             case "failed":
-                console.error("failed ", "SendSocketID : " + socketID, + ", SFUSocketID: " + socket.id, ", Mode: " + mode, ", TargetSocketID: " + targetSocketID);
-                /*
+                console.error("failed ", "SendSocketID : " + socketID, ", SFUSocketID: " + socket.id, ", Mode: " + mode, ", TargetSocketID: " + targetSocketID);
                 // One or more transports has terminated unexpectedly or in an error                          
-                let retryNum = retryNums[socketID];
-                
-                for (let i = 0; i < offers.length; i++) {
-                    if (offers[i] == socketID) {
-                        console.error('in this');
-                        if (retryNum > retryMax) {
-                            //turn서버를 이용하는 모드로 변경
-                            pc_configs[socketID].iceServers = pc_config_turn.iceServers;                           
-                        }
-                        peerExit(socketID,mode);
-                        socket.emit('offerDisconnected', {
-                            offerSendOfferId: socket.id,//SFU 서버의 소켓아이디로 고정
-                            offerSendAnswerId: socketID,
-                            retryNum: retryNums[socketID],
-                            mode,
-                            targetSocketID
-                        });
-                    }
-                }
-                */
+                doRetryPeerConnection({offerSendOfferId:socketID,offerSendAnswerId:socket.id,mode,targetSocketID});
                 break;
             case "closed":
                 // The connection has been closed                          
@@ -186,7 +196,6 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
             default:
                 console.error(pc.connectionState);
         }
-
     }
 
     pc.oniceconnectionstatechange = (e) => {

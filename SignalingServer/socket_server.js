@@ -55,19 +55,7 @@ module.exports = (socket, io) => {
         socket.to(data.candidateReceiveID).emit('getCandidate', { candidate: data.candidate, candidateSendID: data.candidateSendID, mode: data.mode, targetSocketID: data.targetSocketID });
         if(cb)
          cb({status:"ok"});
-    });
-    socket.on('offerDisconnected', data => {
-        const roomID = socketIdToRoom[socket.id];
-        let offerUser = null;
-        if (data.mode == "up")
-            offerUser = { id: SFUsocketID };
-        else
-            offerUser = roomToUsers[roomID].filter(user => user.id == socket.id)[0];
-
-        socket.to(data.offerSendAnswerId).emit('offerDisconnected', { offerUser, retryNum: data.retryNum, mode: data.mode });
-        console.log('offerDisconnected : ');
-        console.log(offerUser);
-    });
+    });    
     socket.on('newSenderEnter', (data,cb) => {
         console.log("newSenderEnter");
         let roomNumber = socketIdToRoom[data.socketID];
@@ -75,6 +63,13 @@ module.exports = (socket, io) => {
         if(cb)
          cb({status:"ok"});
     });
+    socket.on('offerDisconnected', (data) => {
+        //data.offerSendAnswerId == SFUSocketID
+        socket.to(data.offerSendAnswerId).emit('offerDisconnected', data);        
+    });
+    socket.on('doReTry',data=>{
+        socket.to(data.offerSendAnswerId).emit('doReTry',data);
+    })
 
     socket.on('exit', exitFunc);
     socket.on("disconnect", (reason) => {
@@ -84,6 +79,8 @@ module.exports = (socket, io) => {
     });
 
     function exitFunc() {
+        socket.to(SFUsocketID).emit('user_exit', { id: socket.id });
+
         console.log(`[${socketIdToRoom[socket.id]}]: ${socket.id} exit`);
         const roomID = socketIdToRoom[socket.id];
         let room = roomToUsers[roomID];
@@ -96,7 +93,6 @@ module.exports = (socket, io) => {
             }
         }
         socket.to(roomID).emit('user_exit', { id: socket.id });
-        socket.to(SFUsocketID).emit('user_exit', { id: socket.id });
         console.log(`disconnected: ${roomToUsers}`);
     }
     return {
