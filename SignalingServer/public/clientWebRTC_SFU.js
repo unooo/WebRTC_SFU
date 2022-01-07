@@ -142,7 +142,6 @@ const App = (localVideo, videoGrid, connectionStateSpan, email) => {
                 pc.setLocalDescription(new RTCSessionDescription(sdp)).then(() => {
                     //  if (mode == 'down')
                     //      alert(JSON.stringify(sdp));
-
                     socket.emit('offer', {
                         sdp: sdp,
                         offerSendID: socket.id,

@@ -1,0 +1,55 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Jest All",
+        "program": "${workspaceFolder}/node_modules/.bin/jest",
+        "args": [
+          "--runInBand"
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "disableOptimisticBPs": true,
+        "windows": {
+          "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+        }
+      },
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Jest Current File",
+        "program": "${workspaceFolder}/node_modules/.bin/jest",
+        "args": [
+          "${fileBasenameNoExtension}",
+          "--config",
+          "jest.config.js"
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "disableOptimisticBPs": true,
+        "windows": {
+          "program": "${workspaceFolder}/node_modules/jest/bin/jest",
+        }
+      },
+      {
+        "type": "node",
+        "request": "attach",
+        "name": "pm2 debugger1",
+        "processId": "${command:PickProcess}",      
+      },
+      {
+        "type": "node",
+        "request": "attach",
+        "name": "pm2 debugger2",
+        "processId": "${command:PickProcess}",      
+      }
+    ],
+    "compounds": [
+        {
+          "name": "Debug Electron",
+          "configurations": ["pm2 debugger1", "pm2 debugger2"]
+        }
+      ]
+  }

@@ -88,7 +88,7 @@ const doRetryPeerConnection = (data)=>{
             senderPCs[data.offerSendId].close();
             delete senderPCs[data.offerSendId];
         }else{
-            if(!!(receiverPCs[data.offerSendId])||!(receiverPCs[data.offerSendId])[data.targetSocketID])
+            if(!(receiverPCs[data.offerSendId])||!(receiverPCs[data.offerSendId])[data.targetSocketID])
                 return;
             (receiverPCs[data.offerSendId])[data.targetSocketID].close();
             delete (receiverPCs[data.offerSendId])[data.targetSocketID];        
@@ -210,7 +210,7 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
         }
     }
 
-    // 업로드일 때만 수행되는 이벤트
+    // 업로드일 때만 수행되는 이벤트 (여야 하지만 현재 사파리 오류로 오픈시켜둠)
     pc.ontrack = (e) => {
         console.log('ontrack success');
         senderStream[socketID] = e.streams[0];
@@ -221,7 +221,7 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
         if (targetStream) {
             console.log('targetStream add');
             targetStream.getTracks().forEach(track => {
-                pc.addTrack(track, targetStream);
+               pc.addTrack(track, targetStream);
                 console.log("add track success");
             });
         } else {
@@ -237,19 +237,23 @@ function peerExit(socketID) {
     delete senderPCs[socketID];
 
     for (let targetSocketID in (receiverPCs[socketID])) {
+      
         (receiverPCs[socketID])[targetSocketID].close();
         delete (receiverPCs[socketID])[targetSocketID];
     }
+    delete receiverPCs[socketID];
 
     for(let outerSocketID in receiverPCs ){
         for(let innerSocketID in receiverPCs[outerSocketID]){
-            if(innerSocketID==socketID){
+            if(innerSocketID==socketID){      
                 (receiverPCs[outerSocketID])[innerSocketID].close();
-                 delete (receiverPCs[outerSocketID])[innerSocketID];
+                delete (receiverPCs[outerSocketID])[innerSocketID];
             }
         }
     }
 
+    senderStream[socketID].close;
+    delete senderStream[socketID];
     for (let i = 0; i < answers.length; i++) {
         if (offers[i] == socketID)
             delete offers[i];
