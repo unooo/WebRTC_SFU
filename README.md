@@ -39,4 +39,6 @@
 
 ![sfu서버구조2](https://user-images.githubusercontent.com/30948477/147922715-e8815849-0442-4ea2-87c4-772164c4fcfc.jpg)
 
-## 
+## 실행화면
+![image](https://user-images.githubusercontent.com/30948477/150794069-49fb70eb-56e9-45cb-ac35-b809ed1789f0.png)
+
