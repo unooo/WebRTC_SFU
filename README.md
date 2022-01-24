@@ -1,5 +1,5 @@
 # WebRTC 시리즈 3. WebRTC_SFU
-**SFU(Selective Forwarding Unit)** 서버 구현 - Hybrid P2P 서버
+**SFU(Selective Forwarding Unit)** 서버 직접 구현 - Hybrid P2P 서버
 ![image](https://user-images.githubusercontent.com/30948477/147924185-dedabd4b-7c91-4c99-9b73-b43f028fb643.png)
 
 ###  WebRTC 시리즈 1.
