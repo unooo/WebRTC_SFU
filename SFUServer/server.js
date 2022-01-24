@@ -27,6 +27,7 @@ let offers = [];
 let answers = [];
 const retryMax = 1;
 
+
 socket.on('connect', () => {
     console.log('[Signal Server Connected] my socket id :' + socket.id);
     socket.emit('SFUAccess',(args)=>{
@@ -110,7 +111,7 @@ const doRetryPeerConnection = (data)=>{
 
 const createAnswer = async (data) => {
     console.log('create answer');
-    let targetStream = data.mode == "up" ? null : senderStream[data.targetSocketID];
+    let targetStream = data.mode == "up" ? null : new wrtc.MediaStream( senderStream[data.targetSocketID]);
     console.debug(data.targetSocketID + " targetStream:" + targetStream);
     let pc = createPeerConnection(data.offerSendID, data.offerSendEmail, socket, targetStream, data.mode, data.targetSocketID);
 
@@ -233,21 +234,41 @@ const createPeerConnection = (socketID, email, socket, targetStream, mode, targe
 
 function peerExit(socketID) {
 
-    senderPCs[socketID].close();
-    delete senderPCs[socketID];
+    let senders=senderPCs[socketID].getSenders();
+    senders.forEach((sender)=>{
+        senderPCs[socketID].removeTrack(sender);
+    });    
+    setTimeout(()=>{
+        senderPCs[socketID].close();
+        delete senderPCs[socketID];
+    },0)
+   
 
     for (let targetSocketID in (receiverPCs[socketID])) {
-      
+        senders=(receiverPCs[socketID])[targetSocketID].getSenders();
+        senders.forEach((sender)=>{
+            (receiverPCs[socketID])[targetSocketID].removeTrack(sender);   
+        });        
+       // setTimeout(()=>{            
         (receiverPCs[socketID])[targetSocketID].close();
         delete (receiverPCs[socketID])[targetSocketID];
+      //  },0);
     }
     delete receiverPCs[socketID];
 
     for(let outerSocketID in receiverPCs ){
         for(let innerSocketID in receiverPCs[outerSocketID]){
             if(innerSocketID==socketID){      
-                (receiverPCs[outerSocketID])[innerSocketID].close();
-                delete (receiverPCs[outerSocketID])[innerSocketID];
+                senders =(receiverPCs[outerSocketID])[innerSocketID].getSenders();
+                
+                senders.forEach((sender)=>{
+                    (receiverPCs[outerSocketID])[innerSocketID].removeTrack(sender);
+                });   
+                setTimeout(()=>{
+                    (receiverPCs[outerSocketID])[innerSocketID].close();
+                    delete (receiverPCs[outerSocketID])[innerSocketID];
+                },0)
+                
             }
         }
     }
